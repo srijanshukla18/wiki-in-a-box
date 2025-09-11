@@ -1,12 +1,8 @@
-# Wiki‑in‑a‑Box (Offline Wikipedia RAG)
+# Wiki‑in‑a‑Box (Offline Wikipedia - Hybrid no‑index RAG)
 
 Runs a local LAN hotspot that answers questions grounded on a local Wikipedia ZIM, with clickable citations. Uses Ollama for gpt‑oss:20b.
 
 ## Quick start
-
-Prereqs
-- Docker + Docker Compose installed
-- Internet to pull the Ollama image and model once
 
 1) Start containers
 - `docker compose up -d nginx kiwix api`
@@ -30,8 +26,6 @@ Get the ZIM (manual mirrors)
 
 4) Use it
 - Open `http://localhost` and ask a question.
-- Click citation chips to open the local article via Kiwix (`/kiwix/...`).
-- Try ELI10 / Advanced / Quiz buttons.
 
 Frontend (dev, optional)
 - Serve the static frontend without Docker (auto‑detects API):
@@ -51,7 +45,7 @@ Repository defaults already set
 - `docker-compose.yml` mounts `./data/hf` → `/root/.cache/huggingface:ro` in the API container.
 - It sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` so model loading never hits the network.
 
-One‑time model prefetch (Docker‑only, recommended)
+One‑time model prefetch (Docker‑only, recommended) - prefetch once and package it
 ```
 mkdir -p ./data/hf
 docker run --rm -v "$PWD/data/hf:/root/.cache/huggingface" python:3.12-slim bash -lc '
@@ -111,61 +105,13 @@ make package-data               # bundle ZIM + title index into dist/wiki-in-a-b
 make verify-data                # verify data bundle hashes
 ```
 
-## Running Ollama locally (macOS/Windows/Linux)
 
-The stack no longer runs an Ollama container. Run Ollama on the host and the API will reach it at `http://host.docker.internal:11434/v1`.
-
-macOS
-- Install: `brew install ollama` (or download from https://ollama.com)
-- Start service: `ollama serve` (or use the app)
-- Pull model (required): `ollama pull gpt-oss:20b`
-- Test from host:
-  - `curl -s http://localhost:11434/v1/chat/completions -H 'content-type: application/json' -d '{"model":"gpt-oss:20b","messages":[{"role":"user","content":"hi"}],"stream":false}'`
-
-Windows
-- Install from https://ollama.com and start the service/app
-- Pull model (required): `ollama pull gpt-oss:20b`
-- Test from host (PowerShell):
-  - `Invoke-WebRequest -Uri http://localhost:11434/v1/chat/completions -Method Post -ContentType 'application/json' -Body '{"model":"gpt-oss:20b","messages":[{"role":"user","content":"hi"}],"stream":false}'`
-
-Linux
-- Install from https://ollama.com
-- Make Ollama reachable by containers:
-  - `export OLLAMA_HOST=0.0.0.0 && ollama serve`
-- Pull model (required): `ollama pull gpt-oss:20b`
-- Test from host:
-  - `curl -s http://localhost:11434/v1/chat/completions -H 'content-type: application/json' -d '{"model":"gpt-oss:20b","messages":[{"role":"user","content":"hi"}],"stream":false}'`
-
-Verify from the API container
-- `docker exec -it wiki-lantern-api-1 sh -lc 'curl -sf http://host.docker.internal:11434/api/tags | head -c 200 || echo FAIL'`
-- If you see `FAIL` on Linux, ensure `OLLAMA_HOST=0.0.0.0` and that port 11434 is open in any firewall.
+Run Ollama on the host and the API will reach it at `http://host.docker.internal:11434/v1` (macOS for the demo)
+on Linux, ensure `OLLAMA_HOST=0.0.0.0` and that port 11434 is open in any firewall.
 
 Notes
-- Docker Desktop resolves `host.docker.internal` to the host automatically on macOS/Windows.
 - Linux support is baked in: this repo sets `extra_hosts: ["host.docker.internal:host-gateway"]` under the `api` service.
-- Alternatively, change `LLM_BASE` to your host IP, e.g., `http://192.168.1.50:11434/v1`.
-- The API expects `LLM_MODEL=gpt-oss:20b` by default; keep Ollama running with that model available.
-
-Using the OpenAI SDK against Ollama (Python)
-```
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="local",
-)
-
-resp = client.chat.completions.create(
-    model="gpt-oss:20b",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Explain what MXFP4 quantization is."},
-    ],
-    extra_body={"reasoning_effort": "low"},
-)
-
-print(resp.choices[0].message.content)
-```
+- The API expects `LLM_MODEL=gpt-oss:20b` by default
 
 ## API (minimal)
 
@@ -234,14 +180,6 @@ Ask about a specific page
 - `POST /api/answer_from_page` with body `{ "path": "/Sunset", "question": "...", "k": 6 }` — builds CONTEXT from that page only and answers.
 
 ## Notes
-
-- WAN detection = simple check to 1.1.1.1 to decide if you’re online; shown as a banner in UI. VRAM refers to GPU memory; not required for this POC.
-
-Troubleshooting
-- “Index not loaded” (503 on chat): ensure `./data/zims/enwiki.zim` exists; then `docker compose restart api`.
-- Kiwix 404: confirm the ZIM file path and name; use a no-images ZIM to reduce I/O.
-- Slow answers: reduce `MAX_ARTICLES` or `MAX_CHUNKS` to trade quality for speed.
-### Optional: Build a title search index (SQLite FTS5)
 
 For stronger title recall beyond prefix suggestions, build a tiny SQLite FTS index of titles:
 
