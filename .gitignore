@@ -1,0 +1,12 @@
+demo.md
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+*.pyo
+*.DS_Store
+data/
+sessions/
+ollama/
+uv.lock
+.steering/

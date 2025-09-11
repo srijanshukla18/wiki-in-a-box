@@ -1,0 +1,53 @@
+services:
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./ops/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on: [api, kiwix]
+
+  api:
+    build: ./api
+    environment:
+      ZIM_PATH: /data/zims/enwiki.zim
+      LLM_BASE: http://host.docker.internal:11434/v1
+      LLM_MODEL: gpt-oss:20b
+      KIWIX_BASE: http://kiwix:8080
+      MAX_CONTEXT_TOKENS: "2700"
+      MAX_NEW_TOKENS: "512"
+      OFFLINE_ENFORCE: "true"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      MAX_ARTICLES: "20"
+      MAX_CHUNKS: "120"
+      CHUNK_TOKENS: "160"
+      CHUNK_OVERLAP: "20"
+      DEBUG_REASONING: "true"
+      SECOND_PASS_ENABLE: "true"
+      SIM_THRESHOLD: "0.22"
+      SECOND_PASS_FACTOR: "2.0"
+      EMBED_LRU_SIZE: "64"
+      SUGGESTION_LIMIT: "20"
+      TITLE_SIM_EXIT: "0.28"
+    volumes:
+      - ./data:/data
+      - ./data/hf:/root/.cache/huggingface:ro
+      - ./api:/app:ro
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: []
+
+  kiwix:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    # The image already sets the port; passing -p duplicates it. Provide only the ZIM path.
+    command: ["/data/zims/enwiki.zim"]
+    volumes:
+      - ./data/zims:/data/zims:ro
+    ports:
+      - "8080:8080"
+ 
