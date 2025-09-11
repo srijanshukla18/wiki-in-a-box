@@ -1,6 +1,6 @@
 # Wiki‑in‑a‑Box (Offline Wikipedia - Hybrid no‑index RAG) - Powered by gpt-oss:20b
 
-Runs a local LAN hotspot that answers questions grounded on a local Wikipedia ZIM, with clickable citations. Uses Ollama for gpt‑oss:20b.
+Runs a local webpage that answers questions grounded on a local Wikipedia ZIM, with clickable citations. Uses Ollama for gpt‑oss:20b.
 
 ## Quick start
 
