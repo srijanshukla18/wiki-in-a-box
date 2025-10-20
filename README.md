@@ -2,6 +2,9 @@
 
 Runs a local webpage that answers questions grounded on a local Wikipedia ZIM, with clickable citations. Uses Ollama for gpt‑oss:20b.
 
+Title‑boosted Hybrid RAG (on‑demand vectors)
+Normalize the query, pull likely article paths via title suggestions (plus optional title search), dedupe and chunk candidate pages (strip boilerplate, section + ~160‑token windows), embed and re‑rank with an early‑exit threshold, otherwise broaden recall with full‑text (widen if weak), then return the top‑scoring snippets with citations.
+
 ## Quick start
 
 1) Start containers
